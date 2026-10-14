@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""numtoveh API server with Proxy for Render."""
+"""numtoveh API server with Proxy & Clean Data for Render."""
 import base64
 import json
 import re
@@ -14,7 +14,7 @@ try:
     from Crypto.Util.Padding import pad, unpad
     from flask import Flask, jsonify, request
 except ImportError:
-    sys.exit("pip install requests pycryptodome flask gunicorn")
+    sys.exit("pip install requests pycryptodome flask gunicorn PySocks")
 
 # ============================================================
 #  CONFIGURATION, TOKEN & PROXY
@@ -23,8 +23,7 @@ TOKEN = "TBzAiKaCSh%bGjMh"
 PORT = int(os.environ.get("PORT", 8094))
 HOST = "0.0.0.0"
 
-# PROXY CONFIGURATION
-# PROXY CONFIGURATION (Formatted for Python requests)
+# PROXY CONFIGURATION (SOCKS5 format)
 PROXY_URL = "socks5://9341477-d2fbc09e97-IN_Delhi-session-70512282-life-5m:cdb3040c93@gate-hk.owlproxy.com:1000"
 PROXIES = {
     "http": PROXY_URL,
@@ -58,8 +57,6 @@ def request_key(timestamp: str) -> str:
 
 
 def napix_reachable(timeout: float = 3.0) -> bool:
-    # Proxy environment mein direct socket check fail ho sakta hai, 
-    # isliye ise bypass ya true return kar sakte hain taaki requests proxy ke through jayein.
     return True
 
 
@@ -158,11 +155,13 @@ def lookup(mobile_no: str, token=None):
         raise ValueError("upstream did not respond")
     api_message = last.get("apiMessage") or {} if isinstance(last, dict) else {}
     raw = last.get("data") if isinstance(last, dict) else None
+    
     vehicles = []
     if isinstance(raw, list):
         vehicles = [v for v in raw if isinstance(v, dict)]
     elif isinstance(raw, dict):
         vehicles = [raw]
+        
     code = str(api_message.get("statusCode")
                or (last.get("statusCode") if isinstance(last, dict) else "") or "")
     if not vehicles:
@@ -172,11 +171,23 @@ def lookup(mobile_no: str, token=None):
                     f"{api_message.get('developerMessage') or api_message.get('message') or (last.get('statusDesc') if isinstance(last, dict) else '') or 'upstream error'}"}
         return {"mobileNo": mobile_no, "found": False, "vehicles": [],
                 "message": "No vehicle is registered against this mobile number."}
+    
     out = []
+    seen_reg_nos = set() # Duplicate check ke liye set
+    
     for v in vehicles:
+        reg_no = v.get("regNo")
+        # Agar yeh registration number pehle aa chuka hai, toh isse chhod do
+        if reg_no and reg_no in seen_reg_nos:
+            continue
+            
         e = {label: v.get(key) for key, label in VEHICLE_VALIDITY_KEYS}
-        e["_raw"] = v
+        # e["_raw"] = v  <--- Yeh line hata di gayi hai (Raw response ab nahi aayega)
+        
         out.append(e)
+        if reg_no:
+            seen_reg_nos.add(reg_no)
+            
     return {"mobileNo": mobile_no, "found": True, "count": len(out), "vehicles": out}
 
 
@@ -188,7 +199,7 @@ app = Flask(__name__)
 @app.route("/", methods=["GET"])
 def root():
     return jsonify({
-        "service": "numtoveh API with Proxy",
+        "service": "numtoveh API with Proxy (Clean Data)",
         "endpoints": {
             "GET /health": "server status",
             "GET /api/mobveh?mobile=9060200196": "vehicle lookup"
