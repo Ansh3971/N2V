@@ -1,4 +1,6 @@
 flask
 requests
+requests[socks]
+PySocks
 pycryptodome
 gunicorn
