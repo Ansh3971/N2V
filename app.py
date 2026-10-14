@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""numtoveh API server for Render."""
+"""numtoveh API server with Proxy for Render."""
 import base64
 import json
 import re
@@ -17,11 +17,18 @@ except ImportError:
     sys.exit("pip install requests pycryptodome flask gunicorn")
 
 # ============================================================
-#  CONFIGURATION & TOKEN
+#  CONFIGURATION, TOKEN & PROXY
 # ============================================================
 TOKEN = "TBzAiKaCSh%bGjMh"
 PORT = int(os.environ.get("PORT", 8094))
 HOST = "0.0.0.0"
+
+# PROXY CONFIGURATION
+PROXY_URL = "http://9341477-d2fbc09e97:cdb3040c93-IN-57344710-5m@gate-hk.owlproxy.com:1000"
+PROXIES = {
+    "http": PROXY_URL,
+    "https": PROXY_URL
+}
 
 NAPIX_BASE_URL = "https://delhigw.napix.gov.in/nic/parivahan/"
 NAPIX_API_BASE_URL = "https://delhigw.napix.gov.in/nic/parivahan/mparivahan/wrapperapi/"
@@ -50,13 +57,9 @@ def request_key(timestamp: str) -> str:
 
 
 def napix_reachable(timeout: float = 3.0) -> bool:
-    from urllib.parse import urlparse
-    host = urlparse(NAPIX_BASE_URL).hostname or "delhigw.napix.gov.in"
-    try:
-        with socket.create_connection((host, 443), timeout=timeout):
-            return True
-    except OSError:
-        return False
+    # Proxy environment mein direct socket check fail ho sakta hai, 
+    # isliye ise bypass ya true return kar sakte hain taaki requests proxy ke through jayein.
+    return True
 
 
 def get_oauth_token(force_refresh: bool = False) -> str:
@@ -64,8 +67,7 @@ def get_oauth_token(force_refresh: bool = False) -> str:
     now = int(time.time())
     if not force_refresh and _ACCESS_TOKEN and int(_ACCESS_TOKEN.get("expires_at", 0)) > now + 30:
         return str(_ACCESS_TOKEN["access_token"])
-    if not napix_reachable():
-        raise RuntimeError("NAPIX gateway not reachable from this machine")
+    
     r = requests.post(
         NAPIX_BASE_URL + "oauth2/token",
         data={"grant_type": "client_credentials",
@@ -74,7 +76,8 @@ def get_oauth_token(force_refresh: bool = False) -> str:
         headers={"User-Agent": "okhttp/4.9.2", "Connection": "Keep-Alive",
                  "Accept-Encoding": "gzip",
                  "Content-Type": "application/x-www-form-urlencoded"},
-        timeout=TOKEN_TIMEOUT)
+        timeout=TOKEN_TIMEOUT,
+        proxies=PROXIES)
     r.raise_for_status()
     data = r.json()
     if not data.get("access_token"):
@@ -99,8 +102,9 @@ def encrypted_post(url, body, token, extra_headers=None, timeout=None):
     for name, value in (extra_headers or {}).items():
         if str(name).lower() in {"param1", "param2", "timestamp"}:
             headers[str(name)] = str(value)
+    
     resp = requests.post(url, json=envelope, headers=headers,
-                         timeout=timeout or TIMEOUT)
+                         timeout=timeout or TIMEOUT, proxies=PROXIES)
     raw = resp.text
     try:
         outer = resp.json()
@@ -183,7 +187,7 @@ app = Flask(__name__)
 @app.route("/", methods=["GET"])
 def root():
     return jsonify({
-        "service": "numtoveh API",
+        "service": "numtoveh API with Proxy",
         "endpoints": {
             "GET /health": "server status",
             "GET /api/mobveh?mobile=9060200196": "vehicle lookup"
@@ -191,9 +195,9 @@ def root():
     })
 
 
-@app.zero_route if hasattr(app, 'zero_route') else app.route("/health", methods=["GET"])
+@app.route("/health", methods=["GET"])
 def health():
-    return jsonify({"status": "ok", "token_set": bool(TOKEN)})
+    return jsonify({"status": "ok", "token_set": bool(TOKEN), "proxy_enabled": True})
 
 
 @app.route("/api/mobveh", methods=["GET", "POST"])
