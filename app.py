@@ -24,7 +24,8 @@ PORT = int(os.environ.get("PORT", 8094))
 HOST = "0.0.0.0"
 
 # PROXY CONFIGURATION
-PROXY_URL = "http://9341477-d2fbc09e97:cdb3040c93-IN-57344710-5m@gate-hk.owlproxy.com:1000"
+# PROXY CONFIGURATION (Formatted for Python requests)
+PROXY_URL = "socks5://9341477-d2fbc09e97-IN_Delhi-session-70512282-life-5m:cdb3040c93@gate-hk.owlproxy.com:1000"
 PROXIES = {
     "http": PROXY_URL,
     "https": PROXY_URL
