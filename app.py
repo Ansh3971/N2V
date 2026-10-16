@@ -19,7 +19,7 @@ except ImportError:
 # ============================================================
 #  CONFIGURATION, TOKEN & PROXY
 # ============================================================
-TOKEN = "TBzAiKaCSh%bGjMh"
+TOKEN = "j8Y8t~q7Ba8ZqBWr"
 PORT = int(os.environ.get("PORT", 8094))
 HOST = "0.0.0.0"
 
