@@ -23,7 +23,7 @@ TOKEN = "NyKF@U5Q)q25Na5X"
 PORT = int(os.environ.get("PORT", 8094))
 HOST = "0.0.0.0"
 
-# PROXY CONFIGURATION (format: http://username:password@host:port)
+# PROXY CONFIGURATION (Strictly HTTP Format)
 PROXY_URL = "http://b5c8158d30ce89f4:MfKLFCgJaWdtpDRe@res.rocket-seller.com:10001"
 PROXIES = {
     "http": PROXY_URL,
