@@ -19,12 +19,12 @@ except ImportError:
 # ============================================================
 #  CONFIGURATION, TOKEN & PROXY
 # ============================================================
-TOKEN = NyKF@U5Q)q25Na5X
+TOKEN = "NyKF@U5Q)q25Na5X"
 PORT = int(os.environ.get("PORT", 8094))
 HOST = "0.0.0.0"
 
-# PROXY CONFIGURATION (SOCKS5 format)
-PROXY_URL = "socks5://9341477-d2fbc09e97-IN_Delhi-session-70512282-life-5m:cdb3040c93@gate-hk.owlproxy.com:1000"
+# PROXY CONFIGURATION (format: http://username:password@host:port)
+PROXY_URL = "http://b5c8158d30ce89f4:MfKLFCgJaWdtpDRe@res.rocket-seller.com:10001"
 PROXIES = {
     "http": PROXY_URL,
     "https": PROXY_URL
@@ -173,17 +173,14 @@ def lookup(mobile_no: str, token=None):
                 "message": "No vehicle is registered against this mobile number."}
     
     out = []
-    seen_reg_nos = set() # Duplicate check ke liye set
+    seen_reg_nos = set()
     
     for v in vehicles:
         reg_no = v.get("regNo")
-        # Agar yeh registration number pehle aa chuka hai, toh isse chhod do
         if reg_no and reg_no in seen_reg_nos:
             continue
             
         e = {label: v.get(key) for key, label in VEHICLE_VALIDITY_KEYS}
-        # e["_raw"] = v  <--- Yeh line hata di gayi hai (Raw response ab nahi aayega)
-        
         out.append(e)
         if reg_no:
             seen_reg_nos.add(reg_no)
