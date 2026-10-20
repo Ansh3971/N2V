@@ -23,8 +23,10 @@ TOKEN = "NyKF@U5Q)q25Na5X"
 PORT = int(os.environ.get("PORT", 8094))
 HOST = "0.0.0.0"
 
-# PROXY CONFIGURATION (Strictly HTTP Format)
-PROXY_URL = "http://b5c8158d30ce89f4:MfKLFCgJaWdtpDRe@res.rocket-seller.com:10001"
+# PROXY CONFIGURATION (SOCKS5 format)
+# Note: Agar 'socks5://' se error aaye, toh 'socks5h://' ka use karein 
+# (socks5h DNS resolve proxy ke through karta hai).
+PROXY_URL = "socks5://b5c8158d30ce89f4:MfKLFCgJaWdtpDRe@res.rocket-seller.com:10001"
 PROXIES = {
     "http": PROXY_URL,
     "https": PROXY_URL
